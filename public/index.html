@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FDA Lead Generation Dashboard - MVP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .priority-critical {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-left: 4px solid #ef4444;
+        }
+        
+        .priority-high {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .priority-medium {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .priority-low {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            border-left: 4px solid #6b7280;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .data-field {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 4px 0;
+        }
+
+        .critical-issue {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+
+        .warning-issue {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 1px solid #fbbf24;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">FDA</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">FDA Lead Generation - MVP</h1>
+                        <p class="text-sm text-gray-500">Improved data display with existing endpoints</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="refreshBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                        Refresh Data
+                    </button>
+                    <div class="flex items-center space-x-2 text-sm text-gray-600">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span>Live</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Stats Overview -->
+        <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Stats will be populated here -->
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200/50">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Filters</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <select id="priorityFilter" class="px-4 py-3 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Priorities</option>
+                    <option value="CRITICAL">Critical</option>
+                    <option value="HIGH">High</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="LOW">Low</option>
+                </select>
+                
+                <select id="typeFilter" class="px-4 py-3 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Types</option>
+                    <option value="DRUG_APPLICATION">Drug Applications</option>
+                    <option value="CLINICAL_TRIAL">Clinical Trials</option>
+                    <option value="WARNING_LETTER">Warning Letters</option>
+                    <option value="RECALL">Recalls</option>
+                    <option value="INSPECTION_FINDING">Inspections</option>
+                </select>
+                
+                <select id="therapeuticFilter" class="px-4 py-3 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Therapeutic Areas</option>
+                    <option value="ONCOLOGY">Oncology</option>
+                    <option value="CNS">CNS</option>
+                    <option value="CARDIOVASCULAR">Cardiovascular</option>
+                    <option value="METABOLIC">Metabolic</option>
+                    <option value="IMMUNOLOGY">Immunology</option>
+                    <option value="RARE_DISEASE">Rare Disease</option>
+                </select>
+                
+                <label class="flex items-center space-x-3 px-4 py-3 bg-white rounded-xl border border-gray-300">
+                    <input type="checkbox" id="biomarkerFilter" class="rounded text-blue-600 focus:ring-blue-500">
+                    <span class="text-gray-700 font-medium">Has Biomarkers</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden">
+            <div class="space-y-4">
+                <div class="loading h-32 rounded-2xl"></div>
+                <div class="loading h-32 rounded-2xl"></div>
+                <div class="loading h-32 rounded-2xl"></div>
+            </div>
+        </div>
+
+        <!-- Leads Container -->
+        <div id="leadsContainer" class="space-y-6">
+            <!-- Leads will be populated here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-16">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-3xl">📊</span>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No leads found</h3>
+            <p class="text-gray-600 mb-6">Try adjusting your filters or refresh the data.</p>
+            <button id="generateLeadsBtn" class="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium">
+                Generate New Leads
+            </button>
+        </div>
+    </main>
+
+    <!-- Email Modal -->
+    <div id="emailModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-900">Email Preview</h2>
+                    <button id="closeModal" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                        <span class="text-gray-600">×</span>
+                    </button>
+                </div>
+            </div>
+            <div id="emailContent" class="p-6 overflow-y-auto max-h-[70vh]">
+                <!-- Email content will be populated here -->
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-between">
+                <div class="text-sm text-gray-600">
+                    <span id="emailPriority"></span> • <span id="emailScore"></span>
+                </div>
+                <div class="space-x-3">
+                    <button id="copyEmailBtn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        Copy Email
+                    </button>
+                    <button id="sendEmailBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                        Compose in Email
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let allLeads = [];
+        let filteredLeads = [];
+        const API_BASE = 'http://localhost:3000/api';
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Filter listeners
+            document.getElementById('priorityFilter').addEventListener('change', applyFilters);
+            document.getElementById('typeFilter').addEventListener('change', applyFilters);
+            document.getElementById('therapeuticFilter').addEventListener('change', applyFilters);
+            document.getElementById('biomarkerFilter').addEventListener('change', applyFilters);
+
+            // Button listeners
+            document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
+            document.getElementById('generateLeadsBtn').addEventListener('click', generateNewLeads);
+            document.getElementById('closeModal').addEventListener('click', closeEmailModal);
+            document.getElementById('copyEmailBtn').addEventListener('click', copyEmailToClipboard);
+            document.getElementById('sendEmailBtn').addEventListener('click', composeEmail);
+        }
+
+        async function loadDashboard() {
+            showLoading();
+            try {
+                // Load stats and leads in parallel
+                const [statsResponse, leadsResponse] = await Promise.all([
+                    fetch(`${API_BASE}/analytics/comprehensive`),
+                    fetch(`${API_BASE}/leads`)
+                ]);
+
+                const stats = await statsResponse.json();
+                const leads = await leadsResponse.json();
+
+                // Sort leads by priority first, then by last activity date (latest first)
+                leads.sort((a, b) => {
+                    // Priority order: CRITICAL > HIGH > MEDIUM > LOW
+                    const priorityOrder = { 'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+                    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+                    if (priorityDiff !== 0) return priorityDiff;
+                    
+                    // Then sort by date
+                    const dateA = new Date(a.lastActivity || a.createdAt || 0);
+                    const dateB = new Date(b.lastActivity || b.createdAt || 0);
+                    return dateB - dateA;
+                });
+
+                allLeads = leads;
+                filteredLeads = leads;
+
+                renderStats(stats);
+                renderLeads(leads);
+                hideLoading();
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showError('Failed to load dashboard data');
+                hideLoading();
+            }
+        }
+
+        function renderStats(stats) {
+            const container = document.getElementById('statsContainer');
+            
+            const statCards = [
+                {
+                    title: 'Total Opportunities',
+                    value: stats.overview.total_leads,
+                    subtitle: `${stats.overview.total_companies} companies`,
+                    icon: '📊',
+                    color: 'blue'
+                },
+                {
+                    title: 'Critical Situations',
+                    value: stats.overview.critical_situations,
+                    subtitle: 'Immediate response needed',
+                    icon: '🚨',
+                    color: 'red'
+                },
+                {
+                    title: 'Drug Applications',
+                    value: stats.by_type.drug_applications.total,
+                    subtitle: `${stats.by_type.drug_applications.with_crl || 0} with issues`,
+                    icon: '💊',
+                    color: 'purple'
+                },
+                {
+                    title: 'Clinical Trials',
+                    value: stats.by_type.clinical_trials.total,
+                    subtitle: `${stats.by_type.clinical_trials.with_biomarkers || 0} with biomarkers`,
+                    icon: '🧪',
+                    color: 'green'
+                }
+            ];
+
+            container.innerHTML = statCards.map(stat => `
+                <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover-lift fade-in">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-${stat.color}-100 rounded-xl flex items-center justify-center">
+                            <span class="text-2xl">${stat.icon}</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-gray-900">${stat.value ? stat.value.toLocaleString() : '0'}</div>
+                            <div class="text-sm text-gray-600">${stat.subtitle}</div>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-gray-900">${stat.title}</h3>
+                </div>
+            `).join('');
+        }
+
+        function renderLeads(leads) {
+            const container = document.getElementById('leadsContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            if (leads.length === 0) {
+                container.style.display = 'none';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            container.style.display = 'block';
+            emptyState.classList.add('hidden');
+
+            container.innerHTML = leads.map(lead => {
+                const specificIssue = extractSpecificIssue(lead);
+                const timelineInfo = extractTimelineInfo(lead);
+                const businessContext = extractBusinessContext(lead);
+
+                return `
+                    <div class="priority-${lead.priority.toLowerCase()} rounded-2xl p-6 hover-lift fade-in cursor-pointer" 
+                         onclick="showEmailModal('${lead.id}')">
+                        
+                        <!-- Header Section -->
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-3 mb-3">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/80 text-gray-700">
+                                        ${formatLeadType(lead.leadType)}
+                                    </span>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                                        ${getPriorityBadgeClass(lead.priority)}">
+                                        ${lead.priority}
+                                    </span>
+                                    <span class="text-sm font-bold text-gray-800">Score: ${lead.score || 'N/A'}</span>
+                                    ${lead.rank ? `<span class="text-xs text-gray-500">#${lead.rank}</span>` : ''}
+                                </div>
+                                
+                                <h3 class="text-2xl font-bold text-gray-900 mb-2">${lead.companyName || 'Unknown Company'}</h3>
+                                <div class="text-sm text-gray-600 mb-1">
+                                    <strong>Last Activity:</strong> ${formatDetailedDate(lead.lastActivity || lead.createdAt)}
+                                </div>
+                            </div>
+                            
+                            <div class="text-right ml-4">
+                                <button onclick="event.stopPropagation(); showEmailModal('${lead.id}')" 
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-2">
+                                    View Email
+                                </button>
+                                ${getExternalLinks(lead)}
+                            </div>
+                        </div>
+
+                        <!-- Critical Issue Alert -->
+                        ${specificIssue.isCritical ? `
+                            <div class="critical-issue data-field mb-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-lg mr-2">🚨</span>
+                                    <h4 class="font-bold text-red-800">CRITICAL REGULATORY ISSUE</h4>
+                                </div>
+                                <p class="font-semibold">${specificIssue.title}</p>
+                                <p class="text-sm mt-1">${specificIssue.description}</p>
+                                ${timelineInfo.deadline ? `
+                                    <div class="mt-2 p-2 bg-red-100 rounded">
+                                        <strong>⏰ DEADLINE:</strong> ${timelineInfo.deadline}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : specificIssue.isWarning ? `
+                            <div class="warning-issue data-field mb-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-lg mr-2">⚠️</span>
+                                    <h4 class="font-bold text-orange-800">REGULATORY ALERT</h4>
+                                </div>
+                                <p class="font-semibold">${specificIssue.title}</p>
+                                <p class="text-sm mt-1">${specificIssue.description}</p>
+                            </div>
+                        ` : `
+                            <div class="data-field mb-4">
+                                <h4 class="font-semibold text-gray-800 mb-1">Identified Opportunity</h4>
+                                <p class="font-medium">${specificIssue.title}</p>
+                                <p class="text-sm text-gray-700 mt-1">${specificIssue.description}</p>
+                            </div>
+                        `}
+
+                        <!-- Detailed Information Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            ${renderDetailedDataSections(lead)}
+                        </div>
+
+                        <!-- Business Intelligence -->
+                        ${businessContext.length > 0 ? `
+                            <div class="data-field">
+                                <h4 class="font-semibold text-gray-800 mb-2">Business Intelligence</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    ${businessContext.map(item => `
+                                        <div class="text-sm">
+                                            <strong>${item.label}:</strong> ${item.value}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Action Items -->
+                        ${renderActionItems(lead)}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function extractSpecificIssue(lead) {
+            let title = 'Regulatory opportunity identified';
+            let description = 'FDA regulatory support needed';
+            let isCritical = false;
+            let isWarning = false;
+
+            // Check for critical issues first
+            if (lead.issues) {
+                const criticalIssue = lead.issues.find(i => i.severity === 'CRITICAL');
+                if (criticalIssue) {
+                    isCritical = true;
+                    title = criticalIssue.description || criticalIssue.type?.replace(/_/g, ' ') || 'Critical regulatory issue';
+                    description = criticalIssue.needsHelp || 'Immediate regulatory intervention required';
+                }
+            }
+
+            if (lead.challenges && !isCritical) {
+                const criticalChallenge = lead.challenges.find(c => c.severity === 'CRITICAL');
+                if (criticalChallenge) {
+                    isCritical = true;
+                    title = criticalChallenge.description || 'Critical development challenge';
+                    description = criticalChallenge.specificNeed || 'Strategic regulatory guidance needed';
+                }
+            }
+
+            // Check lead type specific issues
+            if (!isCritical) {
+                switch (lead.leadType) {
+                    case 'WARNING_LETTER':
+                        isCritical = true;
+                        title = 'FDA Warning Letter Received';
+                        description = `${lead.issue?.classification || 'Class I'} warning letter requiring immediate response within 15 working days`;
+                        break;
+                    
+                    case 'RECALL':
+                        isWarning = true;
+                        title = `${lead.issue?.classification || 'Product'} Recall Management`;
+                        description = `Product recall for ${lead.issue?.product || 'pharmaceutical product'} due to ${lead.issue?.reason || 'quality/safety concerns'}`;
+                        break;
+                    
+                    case 'DRUG_APPLICATION':
+                        if (lead.status === 'COMPLETE_RESPONSE_LETTER') {
+                            isCritical = true;
+                            title = 'Complete Response Letter Received';
+                            description = `FDA CRL for ${lead.submissionType || 'submission'} requiring comprehensive response strategy`;
+                        } else if (lead.status === 'REFUSE_TO_FILE') {
+                            isCritical = true;
+                            title = 'Refuse to File Letter';
+                            description = 'FDA refused to file application - immediate remediation required';
+                        } else if (lead.status === 'FILED_UNDER_REVIEW') {
+                            isWarning = true;
+                            title = 'Active FDA Review Period';
+                            description = `${lead.submissionType || 'Application'} under FDA review - optimal time for proactive preparation`;
+                        } else {
+                            title = `${lead.submissionType || 'FDA'} Submission Support`;
+                            description = `Regulatory strategy optimization for ${lead.submissionType} pathway`;
+                        }
+                        break;
+                    
+                    case 'CLINICAL_TRIAL':
+                        if (lead.biomarkerStrategy?.enrichmentStrategy === 'MIXED_POPULATION') {
+                            isWarning = true;
+                            title = 'Complex Biomarker Strategy Detected';
+                            description = 'Mixed biomarker population design requiring careful FDA alignment';
+                        } else if (lead.trialInfo?.phase === 'PHASE2' && lead.complexityScore > 60) {
+                            isWarning = true;
+                            title = 'Phase 2 Optimization Opportunity';
+                            description = 'High complexity Phase 2 trial with potential optimization needs';
+                        } else if (lead.trialInfo?.status === 'NOT_YET_RECRUITING') {
+                            title = 'Pre-Trial Optimization Window';
+                            description = 'Protocol optimization opportunity before recruitment begins';
+                        } else {
+                            title = `${lead.trialInfo?.phase || 'Clinical'} Trial Strategy`;
+                            description = `Regulatory optimization for ${lead.trialInfo?.indication || 'therapeutic'} development`;
+                        }
+                        break;
+                    
+                    case 'INSPECTION_FINDING':
+                        isWarning = true;
+                        title = 'FDA Inspection Finding';
+                        description = lead.issue?.description || 'GMP compliance issue requiring proactive remediation';
+                        break;
+                }
+            }
+
+            return { title, description, isCritical, isWarning };
+        }
+
+        function extractTimelineInfo(lead) {
+            let deadline = null;
+            let urgency = null;
+
+            if (lead.leadType === 'WARNING_LETTER') {
+                const issueDate = new Date(lead.issue?.date || lead.lastActivity);
+                const deadlineDate = new Date(issueDate);
+                deadlineDate.setDate(deadlineDate.getDate() + 15); // 15 working days
+                deadline = `${formatDate(deadlineDate)} (${getDaysUntil(deadlineDate)} days remaining)`;
+                urgency = 'Response required within 15 working days of receipt';
+            }
+
+            if (lead.status === 'COMPLETE_RESPONSE_LETTER') {
+                urgency = 'CRL response typically due within 6 months of receipt';
+            }
+
+            return { deadline, urgency };
+        }
+
+        function extractBusinessContext(lead) {
+            const context = [];
+
+            if (lead.therapeuticArea) {
+                context.push({ label: 'Therapeutic Area', value: lead.therapeuticArea });
+            }
+
+            if (lead.estimatedOpportunityValue) {
+                context.push({ 
+                    label: 'Estimated Value', 
+                    value: `$${lead.estimatedOpportunityValue.toLocaleString()}` 
+                });
+            }
+
+            if (lead.competitive?.intensity) {
+                context.push({ 
+                    label: 'Market Competition', 
+                    value: lead.competitive.intensity 
+                });
+            }
+
+            if (lead.competitive?.fdaClimate) {
+                context.push({ 
+                    label: 'FDA Climate', 
+                    value: lead.competitive.fdaClimate.replace(/_/g, ' ') 
+                });
+            }
+
+            if (lead.biomarkerStrategy?.usesBiomarkers) {
+                context.push({ 
+                    label: 'Biomarker Strategy', 
+                    value: lead.biomarkerStrategy.enrichmentStrategy?.replace(/_/g, ' ') || 'Present' 
+                });
+            }
+
+            if (lead.complexityScore) {
+                context.push({ 
+                    label: 'Complexity Score', 
+                    value: `${lead.complexityScore}/100` 
+                });
+            }
+
+            return context;
+        }
+
+        function renderDetailedDataSections(lead) {
+            let sections = [];
+
+            // Application specific data
+            if (lead.leadType === 'DRUG_APPLICATION') {
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Application Details</h5>
+                        <div class="space-y-1 text-sm">
+                            <div><strong>Number:</strong> ${lead.applicationNumber || 'Not specified'}</div>
+                            <div><strong>Type:</strong> ${lead.submissionType || 'Not specified'}</div>
+                            <div><strong>Status:</strong> ${formatStatus(lead.status)}</div>
+                            ${lead.products && lead.products.length > 0 ? `
+                                <div><strong>Product:</strong> ${lead.products[0].brandName || lead.products[0].genericName || 'Not specified'}</div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `);
+
+                if (lead.issues && lead.issues.length > 0) {
+                    sections.push(`
+                        <div class="data-field">
+                            <h5 class="font-semibold text-gray-800 mb-2">Regulatory Issues (${lead.issues.length})</h5>
+                            <div class="space-y-2">
+                                ${lead.issues.map(issue => `
+                                    <div class="text-sm p-2 rounded ${issue.severity === 'CRITICAL' ? 'bg-red-50 text-red-800' : issue.severity === 'HIGH' ? 'bg-orange-50 text-orange-800' : 'bg-blue-50 text-blue-800'}">
+                                        <div class="font-medium">${issue.severity}</div>
+                                        <div>${issue.description || issue.type?.replace(/_/g, ' ')}</div>
+                                        ${issue.needsHelp ? `<div class="text-xs mt-1"><em>Need: ${issue.needsHelp}</em></div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `);
+                }
+            }
+
+            // Clinical Trial specific data
+            if (lead.leadType === 'CLINICAL_TRIAL') {
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Trial Details</h5>
+                        <div class="space-y-1 text-sm">
+                            <div><strong>NCT ID:</strong> ${lead.trialInfo?.nctId || 'Not specified'}</div>
+                            <div><strong>Phase:</strong> ${lead.trialInfo?.phase || 'Not specified'}</div>
+                            <div><strong>Status:</strong> ${lead.trialInfo?.status || 'Not specified'}</div>
+                            <div><strong>Indication:</strong> ${lead.trialInfo?.indication || 'Not specified'}</div>
+                            <div><strong>Enrollment:</strong> ${lead.trialInfo?.enrollment?.count || 'Not specified'}</div>
+                            <div><strong>Start Date:</strong> ${formatDate(lead.trialInfo?.startDate)}</div>
+                        </div>
+                    </div>
+                `);
+
+                if (lead.trialInfo?.title) {
+                    sections.push(`
+                        <div class="data-field">
+                            <h5 class="font-semibold text-gray-800 mb-2">Trial Title</h5>
+                            <div class="text-sm text-gray-700">${lead.trialInfo.title}</div>
+                        </div>
+                    `);
+                }
+
+                if (lead.challenges && lead.challenges.length > 0) {
+                    sections.push(`
+                        <div class="data-field">
+                            <h5 class="font-semibold text-gray-800 mb-2">Regulatory Challenges (${lead.challenges.length})</h5>
+                            <div class="space-y-2">
+                                ${lead.challenges.map(challenge => `
+                                    <div class="text-sm p-2 rounded ${challenge.severity === 'CRITICAL' ? 'bg-red-50 text-red-800' : challenge.severity === 'HIGH' ? 'bg-orange-50 text-orange-800' : 'bg-blue-50 text-blue-800'}">
+                                        <div class="font-medium">${challenge.severity}: ${challenge.type?.replace(/_/g, ' ') || 'Challenge'}</div>
+                                        <div>${challenge.description}</div>
+                                        ${challenge.specificNeed ? `<div class="text-xs mt-1"><em>Need: ${challenge.specificNeed}</em></div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `);
+                }
+            }
+
+            // Warning Letter specific data
+            if (lead.leadType === 'WARNING_LETTER') {
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Warning Letter Details</h5>
+                        <div class="space-y-1 text-sm">
+                            <div><strong>Classification:</strong> ${lead.issue?.classification || 'Critical'}</div>
+                            <div><strong>Product Affected:</strong> ${lead.issue?.product || 'Multiple products'}</div>
+                            <div><strong>Issue Date:</strong> ${formatDate(lead.issue?.date || lead.lastActivity)}</div>
+                            <div><strong>Distribution:</strong> ${lead.issue?.distributionPattern || 'Various markets'}</div>
+                            <div class="font-medium text-red-600 mt-2">⚠️ Response required within 15 working days</div>
+                        </div>
+                    </div>
+                `);
+
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Immediate Actions Required</h5>
+                        <div class="text-sm space-y-1">
+                            <div>• Comprehensive response strategy development</div>
+                            <div>• Root cause analysis and CAPA plan</div>
+                            <div>• FDA communication strategy</div>
+                            <div>• Timeline management for response</div>
+                        </div>
+                    </div>
+                `);
+            }
+
+            // Recall specific data
+            if (lead.leadType === 'RECALL') {
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Recall Information</h5>
+                        <div class="space-y-1 text-sm">
+                            <div><strong>Classification:</strong> ${lead.issue?.classification || 'Class I'}</div>
+                            <div><strong>Product:</strong> ${lead.issue?.product || 'Pharmaceutical product'}</div>
+                            <div><strong>Reason:</strong> ${lead.issue?.reason || 'Quality/safety concern'}</div>
+                            <div><strong>Initiation Date:</strong> ${formatDate(lead.issue?.initiationDate || lead.lastActivity)}</div>
+                            <div><strong>Type:</strong> ${lead.issue?.voluntary ? 'Voluntary' : 'Mandatory'}</div>
+                        </div>
+                    </div>
+                `);
+
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Support Opportunities</h5>
+                        <div class="text-sm space-y-1">
+                            <div>• Recall management and coordination</div>
+                            <div>• Quality system remediation</div>
+                            <div>• Post-recall FDA inspection preparation</div>
+                            <div>• Preventive action implementation</div>
+                        </div>
+                    </div>
+                `);
+            }
+
+            // Inspection Finding specific data
+            if (lead.leadType === 'INSPECTION_FINDING') {
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Inspection Details</h5>
+                        <div class="space-y-1 text-sm">
+                            <div><strong>Issue Type:</strong> ${lead.issue?.type || 'GMP Compliance'}</div>
+                            <div><strong>Description:</strong> ${lead.issue?.description || 'Manufacturing quality issue'}</div>
+                            <div class="font-medium text-yellow-600 mt-2">📋 Proactive remediation recommended</div>
+                        </div>
+                    </div>
+                `);
+
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Remediation Services</h5>
+                        <div class="text-sm space-y-1">
+                            <div>• Quality system gap analysis</div>
+                            <div>• CAPA development and implementation</div>
+                            <div>• Inspection readiness training</div>
+                            <div>• Regulatory strategy optimization</div>
+                        </div>
+                    </div>
+                `);
+            }
+
+            // Biomarker strategy details
+            if (lead.biomarkerStrategy?.usesBiomarkers) {
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Biomarker Strategy</h5>
+                        <div class="space-y-1 text-sm">
+                            <div><strong>Strategy:</strong> ${lead.biomarkerStrategy.enrichmentStrategy?.replace(/_/g, ' ') || 'Not specified'}</div>
+                            <div><strong>Complexity:</strong> ${lead.biomarkerStrategy.complexity || 'Not specified'}</div>
+                            ${lead.biomarkerStrategy.specificMarkers?.length > 0 ? `
+                                <div><strong>Markers:</strong> ${lead.biomarkerStrategy.specificMarkers.join(', ')}</div>
+                            ` : ''}
+                            ${lead.biomarkerStrategy.enrichmentStrategy === 'MIXED_POPULATION' ? `
+                                <div class="text-orange-600 font-medium mt-2">⚠️ Mixed population requires careful FDA alignment</div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `);
+            }
+
+            // If we don't have enough sections, add a generic data section
+            if (sections.length < 2) {
+                sections.push(`
+                    <div class="data-field">
+                        <h5 class="font-semibold text-gray-800 mb-2">Additional Information</h5>
+                        <div class="space-y-1 text-sm">
+                            <div><strong>Lead Type:</strong> ${formatLeadType(lead.leadType)}</div>
+                            <div><strong>Urgency Level:</strong> ${lead.priority}</div>
+                            <div><strong>Score:</strong> ${lead.score || 'Not calculated'}</div>
+                            <div><strong>Contact Recommendation:</strong> ${lead.nextContactWindow || 'Contact soon'}</div>
+                        </div>
+                    </div>
+                `);
+            }
+
+            return sections.join('');
+        }
+
+        function renderActionItems(lead) {
+            const actions = [];
+            const timeframe = getRecommendedTimeframe(lead);
+
+            // Generate specific action items based on lead type and issues
+            switch (lead.leadType) {
+                case 'WARNING_LETTER':
+                    actions.push('Immediate: Schedule emergency response meeting');
+                    actions.push('Day 1-3: Conduct comprehensive gap analysis');
+                    actions.push('Day 4-10: Develop detailed response strategy');
+                    actions.push('Day 11-15: Submit formal response to FDA');
+                    break;
+                
+                case 'RECALL':
+                    actions.push('Immediate: Assess recall scope and impact');
+                    actions.push('Week 1: Implement recall execution plan');
+                    actions.push('Week 2-4: Root cause analysis and CAPA');
+                    actions.push('Month 2: Prepare for FDA inspection');
+                    break;
+                
+                case 'DRUG_APPLICATION':
+                    if (lead.status === 'COMPLETE_RESPONSE_LETTER') {
+                        actions.push('Week 1: Analyze CRL content and requirements');
+                        actions.push('Week 2-4: Develop response strategy');
+                        actions.push('Month 2-4: Execute required studies/analyses');
+                        actions.push('Month 5-6: Prepare and submit response');
+                    } else if (lead.status === 'FILED_UNDER_REVIEW') {
+                        actions.push('Immediate: Monitor FDA review progress');
+                        actions.push('Week 1-2: Prepare for potential FDA questions');
+                        actions.push('Ongoing: Maintain readiness for information requests');
+                    }
+                    break;
+                
+                case 'CLINICAL_TRIAL':
+                    if (lead.trialInfo?.status === 'NOT_YET_RECRUITING') {
+                        actions.push('Week 1: Protocol optimization review');
+                        actions.push('Week 2-3: FDA strategy alignment');
+                        actions.push('Week 4: Finalize regulatory approach');
+                    } else if (lead.biomarkerStrategy?.enrichmentStrategy === 'MIXED_POPULATION') {
+                        actions.push('Week 1: Biomarker strategy review');
+                        actions.push('Week 2-3: FDA precedent analysis');
+                        actions.push('Month 2: Strategy refinement');
+                    }
+                    break;
+                
+                default:
+                    actions.push('Week 1: Initial consultation and assessment');
+                    actions.push('Week 2-3: Strategy development');
+                    actions.push('Month 2: Implementation support');
+            }
+
+            if (actions.length === 0) {
+                actions.push('Schedule initial consultation');
+                actions.push('Conduct regulatory assessment');
+                actions.push('Develop strategic approach');
+            }
+
+            return `
+                <div class="data-field">
+                    <h4 class="font-semibold text-gray-800 mb-3">Recommended Actions</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <h5 class="font-medium text-gray-700 mb-2">Action Timeline</h5>
+                            <div class="space-y-1">
+                                ${actions.map(action => `
+                                    <div class="text-sm text-gray-600">• ${action}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="font-medium text-gray-700 mb-2">Contact Strategy</h5>
+                            <div class="space-y-1 text-sm">
+                                <div><strong>Timeframe:</strong> ${timeframe}</div>
+                                <div><strong>Approach:</strong> ${getContactApproach(lead)}</div>
+                                <div><strong>Key Message:</strong> ${getKeyMessage(lead)}</div>
+                                ${lead.estimatedOpportunityValue ? `
+                                    <div><strong>Est. Value:</strong> $${lead.estimatedOpportunityValue.toLocaleString()}</div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getRecommendedTimeframe(lead) {
+            if (lead.priority === 'CRITICAL') return 'Contact immediately (within 24 hours)';
+            if (lead.priority === 'HIGH') return 'Contact within 1-2 days';
+            if (lead.priority === 'MEDIUM') return 'Contact within 1 week';
+            return 'Contact within 2 weeks';
+        }
+
+        function getContactApproach(lead) {
+            switch (lead.leadType) {
+                case 'WARNING_LETTER':
+                    return 'Direct outreach to CMO/Head of Regulatory';
+                case 'RECALL':
+                    return 'Contact Quality/Regulatory leadership';
+                case 'DRUG_APPLICATION':
+                    return 'Reach out to Regulatory Affairs team';
+                case 'CLINICAL_TRIAL':
+                    return 'Contact Clinical Development leadership';
+                default:
+                    return 'Multi-stakeholder approach';
+            }
+        }
+
+        function getKeyMessage(lead) {
+            const urgencyReason = lead.urgencyReason || 'regulatory optimization opportunity';
+            return urgencyReason.length > 60 ? urgencyReason.substring(0, 60) + '...' : urgencyReason;
+        }
+
+        function getExternalLinks(lead) {
+            let links = '';
+            
+            if (lead.trialInfo?.nctId) {
+                links += `
+                    <a href="https://clinicaltrials.gov/study/${lead.trialInfo.nctId}" target="_blank"
+                       class="block w-full px-3 py-1 bg-green-600 text-white rounded text-xs text-center hover:bg-green-700 transition-colors mb-1">
+                        View on ClinicalTrials.gov
+                    </a>
+                `;
+            }
+            
+            if (lead.applicationNumber && lead.applicationNumber !== 'Unknown') {
+                links += `
+                    <a href="https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=BasicSearch.process" target="_blank"
+                       class="block w-full px-3 py-1 bg-purple-600 text-white rounded text-xs text-center hover:bg-purple-700 transition-colors mb-1">
+                        FDA Database
+                    </a>
+                `;
+            }
+            
+            return links;
+        }
+
+        function getDaysUntil(date) {
+            const today = new Date();
+            const diffTime = date - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        async function showEmailModal(leadId) {
+            try {
+                const response = await fetch(`${API_BASE}/leads/${leadId}/email`);
+                const emailData = await response.json();
+
+                document.getElementById('emailPriority').textContent = `Priority: ${emailData.metadata.priority}`;
+                document.getElementById('emailScore').textContent = `Score: ${emailData.metadata.score}`;
+
+                const emailContent = document.getElementById('emailContent');
+                emailContent.innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                            <div class="p-3 bg-gray-50 rounded-lg text-sm font-medium">${emailData.email.subject}</div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email Body</label>
+                            <div class="p-4 bg-gray-50 rounded-lg space-y-3 text-sm leading-relaxed">
+                                <p><strong>${emailData.email.greeting}</strong></p>
+                                <p>${emailData.email.opening}</p>
+                                <p>${emailData.email.problemStatement}</p>
+                                <p>${emailData.email.solution}</p>
+                                
+                                ${emailData.email.specificAnalysis ? `
+                                    <div class="pl-4 border-l-2 border-blue-200 bg-blue-50 rounded p-3">
+                                        <div class="font-medium text-blue-800 mb-2">Our Analysis Includes:</div>
+                                        <div class="whitespace-pre-line text-blue-700">${emailData.email.specificAnalysis}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${emailData.email.competitiveContext ? `
+                                    <p class="font-medium text-orange-700 bg-orange-50 p-3 rounded">${emailData.email.competitiveContext}</p>
+                                ` : ''}
+                                
+                                ${emailData.email.urgency ? `
+                                    <p class="text-red-600 font-medium bg-red-50 p-3 rounded border border-red-200">${emailData.email.urgency}</p>
+                                ` : ''}
+                                
+                                <p class="font-medium">${emailData.email.callToAction}</p>
+                                <p>${emailData.email.closing || emailData.email.signature || 'Best regards,\\n[Your name]'}</p>
+                            </div>
+                        </div>
+                        
+                        ${emailData.trialContext ? `
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Trial Context</label>
+                                <div class="p-3 bg-blue-50 rounded-lg text-sm">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div><strong>NCT ID:</strong> ${emailData.trialContext.nctId}</div>
+                                        <div><strong>Phase:</strong> ${emailData.trialContext.phase}</div>
+                                        <div><strong>Indication:</strong> ${emailData.trialContext.indication}</div>
+                                        <div><strong>Challenges:</strong> ${emailData.trialContext.challenges?.length || 0}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${emailData.applicationContext ? `
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Application Context</label>
+                                <div class="p-3 bg-purple-50 rounded-lg text-sm">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div><strong>Status:</strong> ${emailData.applicationContext.status}</div>
+                                        <div><strong>Type:</strong> ${emailData.applicationContext.submissionType}</div>
+                                        <div><strong>Issues:</strong> ${emailData.applicationContext.issues?.length || 0}</div>
+                                        <div><strong>Products:</strong> ${emailData.applicationContext.products?.length || 0}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                // Store email data for copying
+                window.currentEmailData = emailData;
+                document.getElementById('emailModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading email:', error);
+                showError('Failed to load email content');
+            }
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.add('hidden');
+        }
+
+        async function copyEmailToClipboard() {
+            if (!window.currentEmailData) return;
+
+            const email = window.currentEmailData.email;
+            const emailText = `Subject: ${email.subject}
+
+${email.greeting}
+
+${email.opening}
+
+${email.problemStatement}
+
+${email.solution}
+
+${email.specificAnalysis || ''}
+
+${email.competitiveContext || ''}
+
+${email.urgency || ''}
+
+${email.callToAction}
+
+${email.closing || email.signature || 'Best regards,\\n[Your name]'}`;
+
+            try {
+                await navigator.clipboard.writeText(emailText);
+                showSuccess('Email copied to clipboard');
+            } catch (error) {
+                console.error('Failed to copy email:', error);
+                showError('Failed to copy email');
+            }
+        }
+
+        function composeEmail() {
+            if (!window.currentEmailData) return;
+
+            const email = window.currentEmailData.email;
+            const subject = encodeURIComponent(email.subject);
+            const body = encodeURIComponent(`${email.greeting}
+
+${email.opening}
+
+${email.problemStatement}
+
+${email.solution}
+
+${email.specificAnalysis || ''}
+
+${email.competitiveContext || ''}
+
+${email.urgency || ''}
+
+${email.callToAction}
+
+${email.closing || email.signature || 'Best regards,\\n[Your name]'}`);
+
+            window.open(`mailto:?subject=${subject}&body=${body}`);
+        }
+
+        function applyFilters() {
+            const priority = document.getElementById('priorityFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            const therapeutic = document.getElementById('therapeuticFilter').value;
+            const biomarker = document.getElementById('biomarkerFilter').checked;
+
+            filteredLeads = allLeads.filter(lead => {
+                if (priority && lead.priority !== priority) return false;
+                if (type && lead.leadType !== type) return false;
+                if (therapeutic && lead.therapeuticArea !== therapeutic) return false;
+                if (biomarker && !lead.biomarkerStrategy?.usesBiomarkers) return false;
+                return true;
+            });
+
+            renderLeads(filteredLeads);
+        }
+
+        async function generateNewLeads() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE}/generate-leads`, { method: 'POST' });
+                const result = await response.json();
+                
+                showSuccess(`Generated ${result.count} new leads`);
+                await loadDashboard();
+            } catch (error) {
+                console.error('Error generating leads:', error);
+                showError('Failed to generate new leads');
+                hideLoading();
+            }
+        }
+
+        // Utility functions
+        function formatLeadType(type) {
+            const map = {
+                'DRUG_APPLICATION': 'Drug Application',
+                'CLINICAL_TRIAL': 'Clinical Trial',
+                'WARNING_LETTER': 'Warning Letter',
+                'RECALL': 'Product Recall',
+                'INSPECTION_FINDING': 'Inspection Finding'
+            };
+            return map[type] || type;
+        }
+
+        function formatStatus(status) {
+            if (!status || status === 'N/A') return 'Status not specified';
+            return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function getPriorityBadgeClass(priority) {
+            const map = {
+                'CRITICAL': 'bg-red-100 text-red-800',
+                'HIGH': 'bg-orange-100 text-orange-800',
+                'MEDIUM': 'bg-blue-100 text-blue-800',
+                'LOW': 'bg-gray-100 text-gray-800'
+            };
+            return map[priority] || 'bg-gray-100 text-gray-800';
+        }
+
+        function formatDate(dateString) {
+            if (!dateString || dateString === 'N/A') return 'Date not specified';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return 'Invalid date';
+            return date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+        }
+
+        function formatDetailedDate(dateString) {
+            if (!dateString || dateString === 'N/A') return 'Date not available';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return 'Invalid date';
+            
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+            if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+            
+            return date.toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric'
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('leadsContainer').style.display = 'none';
+            document.getElementById('emptyState').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function showError(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
